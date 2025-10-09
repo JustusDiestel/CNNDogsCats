@@ -8,6 +8,7 @@ from torchvision import datasets, transforms
 from sklearn.model_selection import train_test_split
 from torch.utils.data import Subset
 import os
+from PIL import Image
 import kagglehub
 
 class CNN(nn.Module):
@@ -60,7 +61,7 @@ model = CNN()
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-for epoch in range(5):
+for epoch in range(10):
     running_loss = 0.0
     for imgs, labels in train_dataloader:
         preds = model(imgs)
@@ -70,3 +71,41 @@ for epoch in range(5):
         optimizer.step()
         running_loss += loss.item()
     print(f"Epoch {epoch+1}, Loss: {running_loss/len(train_dataloader):.4f}")
+
+from PIL import Image
+import torch
+
+# Testbild laden
+img_path = "Bildschirmfoto 2025-10-09 um 11.32.37.png"  # Pfad zu deinem Testbild
+img = Image.open(img_path).convert("RGB")
+
+# Gleiche Transformation wie beim Training!
+transform = transforms.Compose([
+    transforms.Resize((64,64)),
+    transforms.ToTensor()
+])
+
+img_t = transform(img).unsqueeze(0)  # Batch-Dimension hinzufügen
+
+# Modell in Eval-Modus
+model.eval()
+correct, total = 0, 0
+
+with torch.no_grad():
+    for imgs, labels in test_dataloader:
+        outputs = model(imgs)
+        _, preds = torch.max(outputs, 1)
+        total += labels.size(0)
+        correct += (preds == labels).int().sum().item()
+
+print(f"Test Accuracy: {100 * correct / total:.2f}%")
+
+
+with torch.no_grad():
+    output = model(img_t)
+    _, pred = torch.max(output, 1)
+
+# Klassenbezeichnungen (abhängig vom Dataset-Ordner)
+classes = data.classes  # z. B. ['cat', 'dog']
+
+print(f"Vorhersage: {classes[pred.item()]}")
